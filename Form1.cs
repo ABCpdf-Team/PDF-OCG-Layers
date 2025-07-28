@@ -1,8 +1,9 @@
 // ===========================================================================
-//	©2013-2021 WebSupergoo. All rights reserved.
+//	©2013-2024 WebSupergoo. All rights reserved.
 //
-//	This source code is for use exclusively with the ABCpdf product under
-//	the terms of the license for that product. Details can be found at
+//	This source code is for use exclusively with the ABCpdf product with
+//	which it is distributed, under the terms of the license for that
+//	product. Details can be found at
 //
 //		http://www.websupergoo.com/
 //
@@ -22,10 +23,10 @@ using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Xml;
-using WebSupergoo.ABCpdf12;
-using WebSupergoo.ABCpdf12.Objects;
-using WebSupergoo.ABCpdf12.Operations;
-using WebSupergoo.ABCpdf12.Atoms;
+using WebSupergoo.ABCpdf13;
+using WebSupergoo.ABCpdf13.Objects;
+using WebSupergoo.ABCpdf13.Operations;
+using WebSupergoo.ABCpdf13.Atoms;
 using OptionalContent;
 
 
@@ -49,6 +50,8 @@ namespace OCGLayers
 		private TextBox textBox1;
 		private TextBox textBox3;
 		private Button openExternallyButton;
+		private Button purgeButton;
+
 		/// <summary>
 		/// Required designer variable.
 		/// </summary>
@@ -102,15 +105,16 @@ namespace OCGLayers
 			this.textBox1 = new System.Windows.Forms.TextBox();
 			this.textBox3 = new System.Windows.Forms.TextBox();
 			this.openExternallyButton = new System.Windows.Forms.Button();
+			this.purgeButton = new System.Windows.Forms.Button();
 			((System.ComponentModel.ISupportInitialize)(this.previewPictureBox)).BeginInit();
 			this.SuspendLayout();
 			// 
 			// annotateButton
 			// 
 			this.annotateButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-			this.annotateButton.Location = new System.Drawing.Point(599, 609);
+			this.annotateButton.Location = new System.Drawing.Point(666, 505);
 			this.annotateButton.Name = "annotateButton";
-			this.annotateButton.Size = new System.Drawing.Size(247, 33);
+			this.annotateButton.Size = new System.Drawing.Size(186, 26);
 			this.annotateButton.TabIndex = 2;
 			this.annotateButton.Text = "Annotate Layers";
 			this.annotateButton.Click += new System.EventHandler(this.annotateButton_Click);
@@ -118,20 +122,20 @@ namespace OCGLayers
 			// removeButton
 			// 
 			this.removeButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-			this.removeButton.Location = new System.Drawing.Point(599, 655);
+			this.removeButton.Location = new System.Drawing.Point(666, 538);
 			this.removeButton.Name = "removeButton";
-			this.removeButton.Size = new System.Drawing.Size(247, 34);
+			this.removeButton.Size = new System.Drawing.Size(186, 76);
 			this.removeButton.TabIndex = 3;
-			this.removeButton.Text = "Remove Invisible Layers";
+			this.removeButton.Text = "Delete Content of Invisible Layers and Remove From Page";
 			this.removeButton.Click += new System.EventHandler(this.removeButton_Click);
 			// 
 			// textBox2
 			// 
 			this.textBox2.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-			this.textBox2.Location = new System.Drawing.Point(25, 748);
+			this.textBox2.Location = new System.Drawing.Point(19, 770);
 			this.textBox2.Name = "textBox2";
-			this.textBox2.Size = new System.Drawing.Size(541, 26);
+			this.textBox2.Size = new System.Drawing.Size(623, 22);
 			this.textBox2.TabIndex = 5;
 			// 
 			// previewPictureBox
@@ -140,9 +144,9 @@ namespace OCGLayers
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
 			this.previewPictureBox.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-			this.previewPictureBox.Location = new System.Drawing.Point(25, 26);
+			this.previewPictureBox.Location = new System.Drawing.Point(19, 21);
 			this.previewPictureBox.Name = "previewPictureBox";
-			this.previewPictureBox.Size = new System.Drawing.Size(541, 698);
+			this.previewPictureBox.Size = new System.Drawing.Size(623, 730);
 			this.previewPictureBox.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
 			this.previewPictureBox.TabIndex = 6;
 			this.previewPictureBox.TabStop = false;
@@ -151,9 +155,9 @@ namespace OCGLayers
 			// 
 			this.layersCheckedListBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
 			this.layersCheckedListBox.FormattingEnabled = true;
-			this.layersCheckedListBox.Location = new System.Drawing.Point(599, 72);
+			this.layersCheckedListBox.Location = new System.Drawing.Point(666, 57);
 			this.layersCheckedListBox.Name = "layersCheckedListBox";
-			this.layersCheckedListBox.Size = new System.Drawing.Size(247, 172);
+			this.layersCheckedListBox.Size = new System.Drawing.Size(186, 106);
 			this.layersCheckedListBox.TabIndex = 7;
 			this.layersCheckedListBox.ItemCheck += new System.Windows.Forms.ItemCheckEventHandler(this.layersCheckedListBox_ItemCheck);
 			// 
@@ -161,18 +165,18 @@ namespace OCGLayers
 			// 
 			this.pageCombo.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
 			this.pageCombo.FormattingEnabled = true;
-			this.pageCombo.Location = new System.Drawing.Point(599, 26);
+			this.pageCombo.Location = new System.Drawing.Point(666, 21);
 			this.pageCombo.Name = "pageCombo";
-			this.pageCombo.Size = new System.Drawing.Size(247, 28);
+			this.pageCombo.Size = new System.Drawing.Size(186, 24);
 			this.pageCombo.TabIndex = 8;
 			this.pageCombo.SelectedIndexChanged += new System.EventHandler(this.pageCombo_SelectedIndexChanged);
 			// 
 			// openButton
 			// 
 			this.openButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-			this.openButton.Location = new System.Drawing.Point(25, 791);
+			this.openButton.Location = new System.Drawing.Point(19, 804);
 			this.openButton.Name = "openButton";
-			this.openButton.Size = new System.Drawing.Size(165, 34);
+			this.openButton.Size = new System.Drawing.Size(124, 26);
 			this.openButton.TabIndex = 9;
 			this.openButton.Text = "Load PDF...";
 			this.openButton.Click += new System.EventHandler(this.openButton_Click);
@@ -180,9 +184,9 @@ namespace OCGLayers
 			// saveButton
 			// 
 			this.saveButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-			this.saveButton.Location = new System.Drawing.Point(360, 791);
+			this.saveButton.Location = new System.Drawing.Point(270, 804);
 			this.saveButton.Name = "saveButton";
-			this.saveButton.Size = new System.Drawing.Size(165, 34);
+			this.saveButton.Size = new System.Drawing.Size(124, 26);
 			this.saveButton.TabIndex = 10;
 			this.saveButton.Text = "Save PDF...";
 			this.saveButton.Click += new System.EventHandler(this.saveButton_Click);
@@ -190,9 +194,9 @@ namespace OCGLayers
 			// createButton1
 			// 
 			this.createButton1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-			this.createButton1.Location = new System.Drawing.Point(599, 369);
+			this.createButton1.Location = new System.Drawing.Point(666, 291);
 			this.createButton1.Name = "createButton1";
-			this.createButton1.Size = new System.Drawing.Size(247, 34);
+			this.createButton1.Size = new System.Drawing.Size(186, 27);
 			this.createButton1.TabIndex = 11;
 			this.createButton1.Text = "Create Simple Layers";
 			this.createButton1.Click += new System.EventHandler(this.createButton1_Click);
@@ -200,9 +204,9 @@ namespace OCGLayers
 			// createButton2
 			// 
 			this.createButton2.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-			this.createButton2.Location = new System.Drawing.Point(599, 409);
+			this.createButton2.Location = new System.Drawing.Point(666, 323);
 			this.createButton2.Name = "createButton2";
-			this.createButton2.Size = new System.Drawing.Size(247, 34);
+			this.createButton2.Size = new System.Drawing.Size(186, 27);
 			this.createButton2.TabIndex = 12;
 			this.createButton2.Text = "Create Nested Layers";
 			this.createButton2.Click += new System.EventHandler(this.createButton2_Click);
@@ -210,9 +214,9 @@ namespace OCGLayers
 			// createButton3
 			// 
 			this.createButton3.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-			this.createButton3.Location = new System.Drawing.Point(599, 449);
+			this.createButton3.Location = new System.Drawing.Point(666, 354);
 			this.createButton3.Name = "createButton3";
-			this.createButton3.Size = new System.Drawing.Size(247, 34);
+			this.createButton3.Size = new System.Drawing.Size(186, 27);
 			this.createButton3.TabIndex = 13;
 			this.createButton3.Text = "Create Membership Layers";
 			this.createButton3.Click += new System.EventHandler(this.createButton3_Click);
@@ -222,10 +226,10 @@ namespace OCGLayers
 			this.textBox1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
 			this.textBox1.BorderStyle = System.Windows.Forms.BorderStyle.None;
 			this.textBox1.Enabled = false;
-			this.textBox1.Location = new System.Drawing.Point(599, 259);
+			this.textBox1.Location = new System.Drawing.Point(666, 204);
 			this.textBox1.Multiline = true;
 			this.textBox1.Name = "textBox1";
-			this.textBox1.Size = new System.Drawing.Size(247, 104);
+			this.textBox1.Size = new System.Drawing.Size(186, 82);
 			this.textBox1.TabIndex = 14;
 			this.textBox1.Text = "The buttons below allow you to create different types of layer structure. Details" +
     " of the specific structures created can be found in the source code.";
@@ -235,10 +239,10 @@ namespace OCGLayers
 			this.textBox3.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
 			this.textBox3.BorderStyle = System.Windows.Forms.BorderStyle.None;
 			this.textBox3.Enabled = false;
-			this.textBox3.Location = new System.Drawing.Point(599, 514);
+			this.textBox3.Location = new System.Drawing.Point(666, 406);
 			this.textBox3.Multiline = true;
 			this.textBox3.Name = "textBox3";
-			this.textBox3.Size = new System.Drawing.Size(247, 89);
+			this.textBox3.Size = new System.Drawing.Size(186, 92);
 			this.textBox3.TabIndex = 15;
 			this.textBox3.Text = "Use the buttons below to annotate items on the page with their layer details and " +
     "also to delete and redact items on specific layers.";
@@ -246,18 +250,29 @@ namespace OCGLayers
 			// openExternallyButton
 			// 
 			this.openExternallyButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-			this.openExternallyButton.Location = new System.Drawing.Point(599, 704);
+			this.openExternallyButton.Location = new System.Drawing.Point(666, 678);
 			this.openExternallyButton.Name = "openExternallyButton";
-			this.openExternallyButton.Size = new System.Drawing.Size(247, 34);
+			this.openExternallyButton.Size = new System.Drawing.Size(186, 27);
 			this.openExternallyButton.TabIndex = 16;
 			this.openExternallyButton.Text = "Open in Acrobat";
 			this.openExternallyButton.UseVisualStyleBackColor = true;
 			this.openExternallyButton.Click += new System.EventHandler(this.openExternallyButton_Click);
 			// 
+			// purgeButton
+			// 
+			this.purgeButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+			this.purgeButton.Location = new System.Drawing.Point(666, 621);
+			this.purgeButton.Name = "purgeButton";
+			this.purgeButton.Size = new System.Drawing.Size(186, 51);
+			this.purgeButton.TabIndex = 17;
+			this.purgeButton.Text = "Remove Unused Layers From Document";
+			this.purgeButton.Click += new System.EventHandler(this.purgeButton_Click);
+			// 
 			// Form1
 			// 
-			this.AutoScaleBaseSize = new System.Drawing.Size(8, 19);
+			this.AutoScaleBaseSize = new System.Drawing.Size(6, 15);
 			this.ClientSize = new System.Drawing.Size(873, 856);
+			this.Controls.Add(this.purgeButton);
 			this.Controls.Add(this.openExternallyButton);
 			this.Controls.Add(this.textBox3);
 			this.Controls.Add(this.textBox1);
@@ -313,27 +328,66 @@ namespace OCGLayers
 			if (_doc == null)
 				return;
 			Properties props = Properties.FromDoc(_doc, false);
+			if (props == null)
+				return;
 			foreach (Page page in _doc.ObjectSoup.Catalog.Pages.GetPageArrayAll()) {
+				_doc.Page = page.ID;
 				Reader oc = Reader.FromPage(props, page);
-				TextOperation op = new TextOperation(_doc);
-				op.PageContents.AddPages();
-				string text = op.GetText();
-				IList<TextFragment> fragments = op.Select(0, text.Length);
-				_doc.FontSize = 12;
-				_doc.Width = 0.1;
-				foreach (TextFragment fragment in fragments) {
-					_doc.Rect.String = fragment.Rect.String;
-					List<OptionalContent.Layer> states = oc.GetLayersFromStreamAndPosition(fragment.StreamID, fragment.StreamOffset);
-					string[] names = new string[states.Count];
-					for (int i = 0; i < names.Length; i++) {
-						names[i] = states[i].Group != null ? states[i].Group.EntryName.Text : "Membership Dictionary";
+				if (true) {
+					TextOperation op = new TextOperation(_doc);
+					op.PageContents.AddPages(_doc.PageNumber);
+					string text = op.GetText();
+					if (text.Length > 0) {
+						IList<TextFragment> fragments = op.Select(0, text.Length);
+						_doc.FontSize = 12;
+						_doc.Width = 0.1;
+						foreach (TextFragment fragment in fragments) {
+							_doc.Rect.String = fragment.Rect.String;
+							List<OptionalContent.Layer> states = oc.GetLayersFromStreamAndPosition(fragment.StreamID, fragment.StreamOffset);
+							if (states.Count > 0)
+								_doc.AddText(MakeDescription(states));
+							_doc.FrameRect();
+						}
 					}
-					if (names.Length > 0)
-						_doc.AddText(string.Join(" ", names));
-					_doc.FrameRect();
+				}
+				if (true) {
+					// The ImageOperation only picks up images and not Form XObjects.
+					// Until we have an update which allows us to see Form XObject location
+					// too, we cannot annotate Form XObjects which are marked as optional.
+					ImageOperation op = new ImageOperation(_doc);
+					op.PageContents.AddPages(_doc.PageNumber);
+					foreach (ImageProperties image in op.GetImageProperties()) {
+						List<OptionalContent.Layer> states = oc.GetLayersFromObject(image.PixMap);
+						if (states.Count > 0) {
+							string txt = MakeDescription(states);
+							foreach (ImageRendition rendition in image.Renditions) {
+								rendition.Focus();
+								_doc.AddText(txt);
+								_doc.FrameRect();
+							}
+						}
+					}
+				}
+				if (true) {
+					foreach (Annotation annot in page.GetAnnotations()) {
+						List<OptionalContent.Layer> states = oc.GetLayersFromObject(annot);
+						if (states.Count > 0) {
+							annot.Focus();
+							_doc.AddText(MakeDescription(states));
+							_doc.FrameRect();
+						}
+					}
 				}
 			}
 			UpdatePreview();
+		}
+
+		private static string MakeDescription(List<OptionalContent.Layer> states) {
+			string[] names = new string[states.Count];
+			for (int i = 0; i < names.Length; i++)
+				names[i] = states[i].Group != null ? states[i].Group.EntryName.Text : "Membership Dictionary";
+			string txt = string.Join(" ", names);
+			return txt;
 		}
 
 		private void removeButton_Click(object sender, EventArgs e) {
@@ -342,6 +396,8 @@ namespace OCGLayers
 			try {
 				Cursor.Current = Cursors.WaitCursor;
 				Properties props = Properties.FromDoc(_doc, false);
+				if (props == null)
+					return;
 				Page page = (Page)_doc.ObjectSoup[_doc.Page];
 				Reader reader = Reader.FromPage(props, page);
 				List<OptionalContent.Layer> layers = reader.GetLayers();
@@ -354,6 +410,25 @@ namespace OCGLayers
 				}
 				UpdateLayers();
 				UpdatePreview();
+			}
+			finally {
+				Cursor.Current = Cursors.Default;
+			}
+		}
+
+		private void purgeButton_Click(object sender, EventArgs e) {
+			if (_doc == null)
+				return;
+			try {
+				Cursor.Current = Cursors.WaitCursor;
+				Properties props = Properties.FromDoc(_doc, false);
+				if (props == null)
+					return;
+				HashSet<Group> unused = props.RemoveUnusedGroups();
+				if (unused.Count > 0) {
+					UpdateLayers();
+					UpdatePreview();
+				}
 			}
 			finally {
 				Cursor.Current = Cursors.Default;
@@ -513,16 +588,16 @@ namespace OCGLayers
 			layersCheckedListBox.Items.Clear();
 			if (_doc == null)
 				return;
-			Properties oc = Properties.FromDoc(_doc, false);
-			if (oc == null)
+			Properties props = Properties.FromDoc(_doc, false);
+			if (props == null)
 				return;
-			Configuration config = oc.GetDefault();
+			Configuration config = props.GetDefault();
 			if (config == null)
 				return;
 			Page page = (Page)_doc.ObjectSoup[_doc.Page];
-			List<Group> groups = oc.GetGroups(page);
+			List<Group> groups = props.GetGroups(page);
 			List<int> indents = new List<int>();
-			oc.SortGroupsForPresentation(groups, indents);
+			props.SortGroupsForPresentation(groups, indents);
 			Doc doc = _doc;
 			try {
 				_doc = null;
@@ -545,6 +620,8 @@ namespace OCGLayers
 				return;
 			}
 			_doc.Rect.String = _doc.MediaBox.String;
+			double scale = previewPictureBox.Width / _doc.Rect.Width;
+			_doc.Rendering.DotsPerInch = Math.Max(scale, 1.0) * 72.0;
 			previewPictureBox.Image = _doc.Rendering.GetBitmap();
 			//if (_doc.Rendering.Log.Length > 0)
 			//	MessageBox.Show("Render warning: " + _doc.Rendering.Log);
@@ -575,7 +652,7 @@ namespace OCGLayers
 			if (dialog.ShowDialog() == DialogResult.OK)
 				_doc.Save(dialog.FileName);
 		}
-    }
+	}
 
 	internal sealed class TemporaryFile : IDisposable {
 		private string mPath;

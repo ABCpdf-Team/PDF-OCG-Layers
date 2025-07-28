@@ -1,8 +1,9 @@
 ﻿// ===========================================================================
-//	©2013-2021 WebSupergoo. All rights reserved.
+//	©2013-2024 WebSupergoo. All rights reserved.
 //
-//	This source code is for use exclusively with the ABCpdf product under
-//	the terms of the license for that product. Details can be found at
+//	This source code is for use exclusively with the ABCpdf product with
+//	which it is distributed, under the terms of the license for that
+//	product. Details can be found at
 //
 //		http://www.websupergoo.com/
 //
@@ -23,10 +24,10 @@ using System.IO;
 using System.Text;
 using System.Xml;
 using System.Net;
-using WebSupergoo.ABCpdf12;
-using WebSupergoo.ABCpdf12.Objects;
-using WebSupergoo.ABCpdf12.Operations;
-using WebSupergoo.ABCpdf12.Atoms;
+using WebSupergoo.ABCpdf13;
+using WebSupergoo.ABCpdf13.Objects;
+using WebSupergoo.ABCpdf13.Operations;
+using WebSupergoo.ABCpdf13.Atoms;
 
 
 namespace OptionalContent {
@@ -97,25 +98,156 @@ namespace OptionalContent {
 		/// <param name="page">The page from which OCGs should be found.</param>
 		/// <returns>A list of the OCGs.</returns>
 		public List<Group> GetGroups(Page page) {
-			List<Group> list = new List<Group>();
-			ISet<Atom> props = page.GetResourcesByType("Properties", true, true, true, true, null);
-			foreach (Atom item in props) {
-				IndirectObject io = page.ResolveObj(item);
-				Group ocg = Group.FromIndirectObject(this, io);
-				if (ocg != null) {
-					list.Add(ocg);
-					continue;
-				}
-				MembershipGroup mg = MembershipGroup.FromIndirectObject(this, io);
-				if (mg != null) {
-					foreach (var ocg2 in mg.PolicyGroups)
-						list.Add(ocg2);
-					continue;
-				}
+			var ocs = new HashSet<IndirectObject>();
+			var props = page.GetResourcesByType("Properties", true, true, true, true, null);
+			foreach (var atom in props) {
+				IndirectObject oc = page.ResolveObj(atom);
+				if (oc != null)
+					ocs.Add(oc);
 			}
+			foreach (var io in GetOptionalObjects(page))
+				ocs.Add(GetOptionalObjectOC(io));
+			var list = new List<Group>();
+			foreach (var oc in ocs)
+				AddGroups(oc, list);
 			return list;
 		}
 
+		/// <summary>
+		/// Adds any Optional Content Groups (OCGs) referenced by an OCG or OCG Membership Dictionary.
+		/// </summary>
+		/// <param name="io">The OCG or OCGMD</param>
+		/// <param name="groups">The list to which the items should be added.</param>
+		public void AddGroups(IndirectObject io, List<Group> groups) {
+			if (io == null)
+				return;
+			Group ocg = Group.FromIndirectObject(this, io);
+			if (ocg != null) {
+				groups.Add(ocg);
+				return;
+			}
+			MembershipGroup mg = MembershipGroup.FromIndirectObject(this, io);
+			if (mg != null) {
+				foreach (var ocg2 in mg.PolicyGroups)
+					groups.Add(ocg2);
+			}
+		}
+
+		/// <summary>
+		/// Find all the document level groups that are not used on pages.
+		/// </summary>
+		/// <returns>A list of groups.</returns>
+		public HashSet<Group> RemoveUnusedGroups() {
+			HashSet<Group> groups = GetUnusedGroups();
+			if (groups.Count > 0) {
+				HashSet<int> ids = new HashSet<int>();
+				foreach (Group g in groups)
+					ids.Add(g.IndirectObject.ID);
+				RemoveRefsByID(_atom, ids, new HashSet<int>(), 0);
+				RemoveAppSettings();
+			}
+			return groups;
+		}
+
+		private HashSet<Group> GetUnusedGroups() {
+			HashSet<Group> all = new HashSet<Group>(GetGroups());
+			foreach (Page page in Catalog.Pages.GetPageArrayAll()) {
+				foreach (Group g in GetGroups(page))
+					all.Remove(g);
+				// We add these OC entries in because our page scanning only references objects which are used.
+				// So if there's an image which isn't used on the page but is referenced in the resources we need to
+				// see if it has an OC entry. Yes it's redundant and could perhaps be removed from the resources but then
+				// it might be there for a reason. Difficult to second guess what might be intended.
+				List<Group> ocs = new List<Group>();
+				foreach (var io in GetOptionalObjects(page))
+					AddGroups(GetOptionalObjectOC(io), ocs);
+				foreach (Group g in ocs)
+					all.Remove(g);
+			}
+			return all;
+		}
+
+		internal List<IndirectObject> GetOptionalObjects(Page page) {
+			List<IndirectObject> ocs = new List<IndirectObject>();
+			foreach (Atom atom in page.GetResourcesByType("XObject", true, true, true, true, null)) {
+				IndirectObject oc = GetOptionalObjectOC(page.ResolveObj(atom));
+				if (oc == null) continue;
+				IndirectObject io = page.ResolveObj(atom);
+				if (io == null) continue;
+				ocs.Add(io);
+			}
+			foreach (Annotation annot in page.GetAnnotations()) {
+				IndirectObject oc = GetOptionalObjectOC(annot);
+				if (oc == null) continue;
+				ocs.Add(annot);
+			}
+			return ocs;
+		}
+
+		internal IndirectObject GetOptionalObjectOC(IndirectObject io) {
+			return io != null ? io.ResolveObj(MakeIndirect(io, io.Atom, "OC")) : null;
+		}
+
+		private void RemoveRefsByID(Atom atom, HashSet<int> ids, HashSet<int> seen, int depth) {
+			if (depth > 100)
+				throw new Exception("Atom nesting depth unfeasibly large.");
+			Atom resAtom = _catalog.Resolve(atom);
+			ArrayAtom array = resAtom as ArrayAtom;
+			if (array != null) {
+				int n = array.Count;
+				for (int i = n - 1; i >= 0; i--) {
+					Atom item = array[i];
+					IndirectObject io = _catalog.ResolveObj(item);
+					if (io != null) {
+						if (ids.Contains(io.ID)) {
+							array.RemoveAt(i);
+							continue;
+						}
+						if (seen.Contains(io.ID))
+							continue;
+						seen.Add(io.ID);
+					}
+					Atom resItem = _catalog.Resolve(item);
+					if (resItem is ArrayAtom || resItem is DictAtom)
+						RemoveRefsByID(resItem, ids, seen, depth + 1);
+				}
+				return;
+			}
+			DictAtom dict = resAtom as DictAtom;
+			if (dict != null) {
+				foreach (string key in dict.GetKeys()) {
+					Atom item = dict[key];
+					IndirectObject io = _catalog.ResolveObj(item);
+					if (io != null) {
+						if (ids.Contains(io.ID)) {
+							dict.Remove(key);
+							continue;
+						}
+						if (seen.Contains(io.ID))
+							continue;
+						seen.Add(io.ID);
+					}
+					Atom resItem = _catalog.Resolve(item);
+					if (resItem is ArrayAtom || resItem is DictAtom)
+						RemoveRefsByID(resItem, ids, seen, depth + 1);
+				}
+				return;
+			}
+		}
+
+		private void RemoveAppSettings() {
+			// Adobe Illustrator holds separate layer info in the PieceInfo structure
+			// and indeed other applications may also hold layer information here. 
+			// It isn't ideal removing the entire thing because it will remove all
+			// settings but then there isn't a public spec for AI so it's difficult
+			// to know what else one would do which would be better.
+			Atom.RemoveItem(Catalog.Atom, "PieceInfo");
+			foreach (Page page in Catalog.Pages.GetPageArrayAll()) {
+				Atom.RemoveItem(page.Atom, "PieceInfo");
+				foreach (Atom atom in page.GetResourcesByType("XObject", true, true, true, true, null))
+					Atom.RemoveItem(Catalog.Resolve(atom), "PieceInfo");
+			}
+		}
 
 		/// <summary>
 		/// Sort Groups for presentation in a UI. Remove any Groups which should not appear in UI. 
@@ -293,6 +425,19 @@ namespace OptionalContent {
 			return refAtom;
 		}
 
+		public static RefAtom MakeIndirect(IndirectObject something, Atom container, string name) {
+			container = something.Resolve(container);
+			Atom value = Atom.GetItem(container, name);
+			if (value == null || value is RefAtom)
+				return (RefAtom)value;
+			IndirectObject prop = new IndirectObject();
+			prop.Atom = value;
+			something.Doc.ObjectSoup.Add(prop);
+			RefAtom refAtom = new RefAtom(prop);
+			Atom.SetItem(container, name, refAtom);
+			return refAtom;
+		}
+
 		public static DictAtom GetResourceDict(Page page, IndirectObject container, string resourceType, bool create) {
 			DictAtom dict = null;
 			Atom resAtom = null;
@@ -319,7 +464,7 @@ namespace OptionalContent {
 	/// are the items visible. OCGs are held at the Doc level in a global dictionary
 	/// and then referenced at a Page level.
 	/// </summary>
-	class Group {
+	class Group : IEquatable<Group> {
 		/// <summary>
 		/// Create a new Group for the document.
 		/// </summary>
@@ -369,6 +514,18 @@ namespace OptionalContent {
 		private Group(Properties oc, IndirectObject io) {
 			_oc = oc;
 			_io = io;
+		}
+
+		public override bool Equals(object obj) {
+			return Equals(obj as Group);
+		}
+
+		public bool Equals(Group other) {
+			return other != null && _io.ID == other._io.ID;
+		}
+
+		public override int GetHashCode() {
+			return _io.ID.GetHashCode();
 		}
 
 		private bool AllOk() {
@@ -449,10 +606,10 @@ namespace OptionalContent {
 	/// but also more powerful.
 	/// OCGs always have to be IndirectObjects since they are referenced from more than one place.
 	/// OCMGs do not have to be IndirectObject - they can be simple Atoms - since they are only referenced from
-	/// the Resources of the Page. However to make things simple we convert them to IndiretObjects when we
+	/// the Resources of the Page. However to make things simple we convert them to IndirectObjects when we
 	/// find them.
 	/// </summary>
-	class MembershipGroup {
+	class MembershipGroup : IEquatable<MembershipGroup> {
 		/// <summary>
 		/// An enumeration representing the possibilities for a Policy based Membership Group.
 		/// </summary>
@@ -520,19 +677,32 @@ namespace OptionalContent {
 			_io = io;
 		}
 
+		public override bool Equals(object obj) {
+			return Equals(obj as MembershipGroup);
+		}
+
+		public bool Equals(MembershipGroup other) {
+			return other != null && _io.ID == other._io.ID;
+		}
+
+		public override int GetHashCode() {
+			return _io.ID.GetHashCode();
+		}
+
 		private bool AllOk() {
 			// check type
 			NameAtom type = _io.Resolve(Atom.GetItem(_io.Atom, "Type")) as NameAtom;
 			if ((type == null) || (type.Text != "OCMD"))
 				return false; // malformed entry - corrupt PDF
+			// OCGs are always IndirectObjects because the OCProperties entry
+			// in the document Catalog requires it to be so.
 			// The optional OCGs can be either a dict or an array of dicts.
 			// To keep things simple we always use the array form.
-			Atom ocgs = _io.Resolve(Atom.GetItem(_io.Atom, "OCGs"));
-			if (ocgs is DictAtom) {
+			Atom ocgs = Atom.GetItem(_io.Atom, "OCGs");
+			if (_io.Resolve(ocgs) is DictAtom) {
 				ArrayAtom array = new ArrayAtom();
 				array.Add(ocgs);
 				Atom.SetItem(_io.Atom, "OCGs", array);
-				ocgs = array;
 			}
 			return true;
 		}
@@ -982,6 +1152,8 @@ namespace OptionalContent {
 			// _page.StampFormXObjects(true) to separate them all out. However
 			// this might have quite an impact on size and it seems unlikely
 			// so we don't currently do this.
+			// This could be more efficiently done using the ContentStreamScanner class,
+			// but we would have to take care of OC properties in XObjects and Annotations ourselves.
 			ScanPage(_page.GetText(Page.TextType.SvgPlus2, true));
 			return true;
 		}
@@ -1064,6 +1236,8 @@ namespace OptionalContent {
 					}
 				}
 			}
+			foreach (var io in _oc.GetOptionalObjects(_page))
+				set.Add(Atom.GetItem(io.Atom, "OC"));
 			List<Layer> list = new List<Layer>();
 			foreach (Atom atom in set) {
 				IndirectObject io = _oc.Catalog.ResolveObj(atom);
@@ -1096,6 +1270,28 @@ namespace OptionalContent {
 				list.Add(new Layer(group, null));
 			foreach (MembershipGroup group in MembershipGroup.FromAtoms(_oc, atoms))
 				list.Add(new Layer(group, null));
+			return list;
+		}
+
+		/// <summary>
+		/// Get the Groups active for an Image XObject, Form XObject or Annotation.
+		/// You can use this to establish the visibility of particular object.
+		/// </summary>
+		/// <param name="io">The IndirectObject to check against.</param>
+		/// <returns>A list of Layers</returns>
+		public List<Layer> GetLayersFromObject(IndirectObject io) {
+			List<Layer> list = new List<Layer>();
+			if (io is FormXObject || io is PixMap) {
+				var oc = _oc.GetOptionalObjectOC(io);
+				if (oc != null) {
+					Group group = Group.FromIndirectObject(_oc, oc);
+					if (group != null)
+						list.Add(new Layer(group, null));
+					MembershipGroup membership = MembershipGroup.FromIndirectObject(_oc, oc);
+					if (group != null)
+						list.Add(new Layer(membership, null));
+				}
+			}
 			return list;
 		}
 
@@ -1150,6 +1346,31 @@ namespace OptionalContent {
 				so.ClearData();
 				so.SetText(sb.ToString());
 				so.CompressFlate();
+			}
+			foreach (var io in _oc.GetOptionalObjects(_page)) {
+				IndirectObject oc = _oc.GetOptionalObjectOC(io);
+				if (oc.ID == layer.IndirectObject.ID) {
+					if (io is Annotation) {
+						ArrayAtom annots = _page.Resolve(Atom.GetItem(_page.Atom, "Annotations")) as ArrayAtom;
+						for (int i = annots.Count - 1; i >= 0; i--) {
+							IndirectObject a = _page.ResolveObj(Atom.GetItem(annots, i));
+							if (a != null && a.ID == io.ID)
+								annots.RemoveAt(i);
+						}
+					}
+					// If an XObject is invisible on the page, it is invisible
+					// everywhere, so we can just clear it.
+					// As an alternative we could identify the 'Do' elements
+					// during ScanPage and then remove those from the stream.
+					// However then we would need to ensure we also removed
+					// the resource and that is a more complex operation.
+					else if (io is StreamObject) {
+						((StreamObject)io).ClearData();
+						Atom.RemoveItem(io.Atom, "Resources");
+						Atom.RemoveItem(io.Atom, "OC");
+						Atom.RemoveItem(io.Atom, "Metadata");
+					}
+				}
 			}
 			_states = null; // invalid
 			_lookups = null; // invalid
